@@ -460,7 +460,7 @@ export function App() {
               </div>
               <div>
                 <Check size={28}/>
-                <div><span>Completed Goals</span><strong>0</strong></div>
+                <div><span>Completed Goals</span><strong>{goalData?.completed ? 1 : 0}</strong></div>
               </div>
               <div>
                 <div className="ring"><span>{goalData ? goalData.progress : 0}%</span></div>
