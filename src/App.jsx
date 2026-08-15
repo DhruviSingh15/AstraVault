@@ -9,6 +9,8 @@ import {
   fundGoalOnChain,
   getRecentTransactions,
   withdrawGoalOnChain,
+  fundYieldOnChain,
+  getYieldPool,
 } from "./blockchain/connection";
 
 import {
@@ -18,6 +20,7 @@ import {
   BarChart3,
   Check,
   ChevronRight,
+  ChevronLeft,
   CircleHelp,
   ClipboardList,
   Coins,
@@ -37,6 +40,9 @@ import {
   Wallet,
   X,
   Zap,
+  Percent,
+  Lock,
+  ExternalLink,
 } from "lucide-react";
 
 function IconBadge({ children, tone = "purple" }) {
@@ -70,6 +76,882 @@ function Modal({ title, children, onClose }) {
         {children}
       </div>
     </div>
+  );
+}
+
+function YieldPoolPage({
+  yieldPool,
+  walletConnected,
+  usdcBalance,
+  setShowAction,
+}) {
+  return (
+    <section className="yield-page">
+
+      {/* Header */}
+      <div className="yield-header">
+        <div>
+          <h1>Yield Pool</h1>
+          <p>
+            Liquidity pool that powers instant goal
+            withdrawals and protocol stability.
+          </p>
+        </div>
+
+        <button className="how-it-works-btn">
+          <CircleHelp size={17} />
+          How it works
+        </button>
+      </div>
+
+      {/* Top section */}
+      <div className="yield-hero-grid">
+
+        {/* Pool balance card */}
+        <div className="yield-pool-card">
+
+          <div className="yield-card-title">
+            <span>Total Yield Pool</span>
+            <CircleHelp size={16} />
+          </div>
+
+          <div className="yield-pool-value">
+            {Number(yieldPool || 0).toFixed(2)}
+          </div>
+
+          <div className="yield-token">
+            tUSDC
+          </div>
+
+          <div className="yield-card-bottom">
+            <span>
+              Liquidity available for goal withdrawals
+            </span>
+
+            <div className="yield-coin">
+              <Coins size={28} />
+            </div>
+          </div>
+
+        </div>
+
+        {/* Visual */}
+        <div className="yield-visual">
+
+          <div className="yield-glow" />
+
+          <div className="yield-platform">
+            <div className="yield-platform-ring">
+              <div className="yield-water" />
+            </div>
+          </div>
+
+          <div className="yield-coin-float coin-one">
+            $
+          </div>
+
+          <div className="yield-coin-float coin-two">
+            $
+          </div>
+
+          <div className="yield-coin-float coin-three">
+            $
+          </div>
+
+          <div className="yield-block block-one" />
+          <div className="yield-block block-two" />
+          <div className="yield-block block-three" />
+
+        </div>
+
+      </div>
+
+      {/* Bottom cards */}
+      <div className="yield-bottom-grid">
+
+        {/* About */}
+        <div className="panel yield-about">
+
+          <h2>About Yield Pool</h2>
+
+          <div className="yield-info-row">
+            <div className="yield-info-icon">
+              <ShieldCheck size={21} />
+            </div>
+
+            <div>
+              <h3>Provides Liquidity</h3>
+              <p>
+                Funds in the pool are used to enable
+                instant goal withdrawals.
+              </p>
+            </div>
+          </div>
+
+          <div className="yield-info-row">
+            <div className="yield-info-icon">
+              <Percent size={21} />
+            </div>
+
+            <div>
+              <h3>Earns Yield</h3>
+              <p>
+                The pool supports the Astra savings
+                ecosystem and liquidity.
+              </p>
+            </div>
+          </div>
+
+          <div className="yield-info-row">
+            <div className="yield-info-icon">
+              <Lock size={21} />
+            </div>
+
+            <div>
+              <h3>Secure & Transparent</h3>
+              <p>
+                All pool activity is recorded on-chain
+                through smart contracts.
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Fund pool */}
+        <div className="panel yield-fund-card">
+
+          <h2>Fund Yield Pool</h2>
+
+          <p>
+            Contribute tUSDC to support goal withdrawals
+            and protocol liquidity.
+          </p>
+
+          <div className="yield-balance-row">
+            <span>Your tUSDC balance</span>
+            <strong>
+              {Number(usdcBalance || 0).toFixed(2)} tUSDC
+            </strong>
+          </div>
+
+          <button
+            className="yield-fund-button"
+            disabled={!walletConnected}
+            onClick={() => setShowAction("yield")}
+          >
+            <ArrowUpRight size={20} />
+            Fund Yield Pool
+          </button>
+
+          <div className="yield-security">
+            <ShieldCheck size={17} />
+            Funds are secured by Astra smart contracts.
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+  );
+}
+
+function TransactionsPage({
+  transactions,
+  usdcBalance,
+  onRefresh,
+  transactionLoading,
+}) {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const transactionsPerPage = 8;
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(transactions.length / transactionsPerPage)
+  );
+
+  const safePage = Math.min(currentPage, totalPages);
+
+  const startIndex =
+    (safePage - 1) * transactionsPerPage;
+
+  const visibleTransactions = transactions.slice(
+    startIndex,
+    startIndex + transactionsPerPage
+  );
+
+  const getTransactionIcon = (title) => {
+    if (title.includes("Fund Yield Pool")) {
+      return <Coins size={19} />;
+    }
+
+    if (title.includes("Withdraw Goal")) {
+      return <ArrowUpRight size={19} />;
+    }
+
+    if (title.includes("Withdraw")) {
+      return <ArrowUpRight size={19} />;
+    }
+
+    if (title.includes("Deposit")) {
+      return <ArrowDownToLine size={19} />;
+    }
+
+    if (title.includes("Create Goal")) {
+      return <Target size={19} />;
+    }
+
+    if (title.includes("Add Savings")) {
+      return <Target size={19} />;
+    }
+
+    return <Coins size={19} />;
+  };
+
+  const getTransactionType = (title) => {
+    if (title.includes("Fund Yield Pool")) {
+      return "Yield";
+    }
+
+    if (title.includes("Withdraw")) {
+      return "Withdraw";
+    }
+
+    if (title.includes("Deposit")) {
+      return "Deposit";
+    }
+
+    if (title.includes("Goal")) {
+      return "Goal";
+    }
+
+    return "Transaction";
+  };
+
+  return (
+    <section className="transactions-page">
+
+      {/* PAGE HEADER */}
+      <div className="transactions-topbar">
+
+        <div>
+          <h1>Transactions</h1>
+        </div>
+
+        <div className="transactions-wallet-actions">
+
+          <div className="transactions-balance-card">
+            <div className="transactions-balance-icon">
+              <Wallet size={25} />
+            </div>
+
+            <div>
+              <span>USDC Balance</span>
+              <strong>
+                {Number(usdcBalance || 0).toFixed(2)} tUSDC
+              </strong>
+              <small>Test Token</small>
+            </div>
+          </div>
+
+          <button
+            className="transactions-refresh-btn"
+            onClick={onRefresh}
+            disabled={transactionLoading}
+          >
+            <RefreshCw
+              size={17}
+              className={
+                transactionLoading
+                  ? "refresh-spinning"
+                  : ""
+              }
+            />
+
+            Refresh
+          </button>
+
+        </div>
+
+      </div>
+
+
+      {/* MAIN TRANSACTION PANEL */}
+      <div className="transactions-main-panel">
+
+        {/* HEADER */}
+        <div className="transactions-panel-header">
+
+          <div>
+            <h2>All Transactions</h2>
+
+            <p>
+              Complete on-chain transaction history
+              for your Astra wallet.
+            </p>
+          </div>
+
+          <div className="transaction-count-badge">
+            <ClipboardList size={17} />
+
+            {transactions.length} Transactions
+          </div>
+
+        </div>
+
+
+        {/* TABLE */}
+        <div className="transactions-table">
+
+          {/* TABLE HEADER */}
+          <div className="transaction-table-header">
+
+            <div>Type</div>
+            <div>Description</div>
+            <div>Amount</div>
+            <div>Date & Time</div>
+            <div>Status</div>
+            <div>TX Hash</div>
+
+          </div>
+
+
+          {/* ROWS */}
+          {visibleTransactions.length === 0 ? (
+
+            <div className="transactions-empty">
+              <Coins size={34} />
+
+              <h3>No transactions yet</h3>
+
+              <p>
+                Your blockchain transactions will
+                appear here.
+              </p>
+            </div>
+
+          ) : (
+
+            visibleTransactions.map((tx, index) => {
+
+              const isPositive =
+                tx.detail?.startsWith("+");
+
+              const isNegative =
+                tx.detail?.startsWith("-");
+
+              return (
+                <div
+                  className="transaction-table-row"
+                  key={
+                    tx.transactionHash
+                      ? `${tx.transactionHash}-${index}`
+                      : `${tx.blockNumber}-${index}`
+                  }
+                >
+
+                  {/* TYPE */}
+                  <div className="transaction-type-cell">
+
+                    <div
+                      className={`transaction-icon ${tx.tone || "purple"}`}
+                    >
+                      {getTransactionIcon(tx.title)}
+                    </div>
+
+                    <span>
+                      {getTransactionType(tx.title)}
+                    </span>
+
+                  </div>
+
+
+                  {/* DESCRIPTION */}
+                  <div className="transaction-description">
+
+                    <strong>
+                      {tx.title}
+                    </strong>
+
+                    <span>
+                      {tx.title === "Fund Yield Pool"
+                        ? "Added liquidity to yield pool"
+                        : tx.detail}
+                    </span>
+
+                  </div>
+
+
+                  {/* AMOUNT */}
+                  <div
+                    className={`transaction-amount ${
+                      isNegative
+                        ? "negative"
+                        : isPositive
+                        ? "positive"
+                        : "neutral"
+                    }`}
+                  >
+                    {tx.detail}
+                  </div>
+
+
+                  {/* DATE */}
+                  <div className="transaction-date">
+                    {tx.meta || "Unknown date"}
+                  </div>
+
+
+                  {/* STATUS */}
+                  <div>
+                    <span className="transaction-status">
+                      Success
+                    </span>
+                  </div>
+
+
+                  {/* HASH */}
+                  <div className="transaction-hash">
+
+                    {tx.transactionHash ? (
+                      <>
+                        <a
+                          href={`https://sepolia.etherscan.io/tx/${tx.transactionHash}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {tx.transactionHash.slice(0, 6)}
+                          ...
+                          {tx.transactionHash.slice(-4)}
+                        </a>
+
+                        <a
+                          href={`https://sepolia.etherscan.io/tx/${tx.transactionHash}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="hash-external"
+                        >
+                          <ExternalLink size={15} />
+                        </a>
+                      </>
+                    ) : (
+                      "—"
+                    )}
+
+                  </div>
+
+                </div>
+              );
+            })
+
+          )}
+
+        </div>
+
+
+        {/* PAGINATION */}
+        {transactions.length > transactionsPerPage && (
+          <div className="transactions-pagination">
+
+            <button
+              disabled={safePage === 1}
+              onClick={() =>
+                setCurrentPage((page) => page - 1)
+              }
+            >
+              <ChevronLeft size={16} />
+              Previous
+            </button>
+
+
+            <div className="pagination-pages">
+
+              {Array.from(
+                { length: totalPages },
+                (_, index) => index + 1
+              ).map((page) => (
+
+                <button
+                  key={page}
+                  className={
+                    page === safePage
+                      ? "active"
+                      : ""
+                  }
+                  onClick={() =>
+                    setCurrentPage(page)
+                  }
+                >
+                  {page}
+                </button>
+
+              ))}
+
+            </div>
+
+
+            <button
+              disabled={safePage === totalPages}
+              onClick={() =>
+                setCurrentPage((page) => page + 1)
+              }
+            >
+              Next
+              <ChevronRight size={16} />
+            </button>
+
+          </div>
+        )}
+
+      </div>
+
+    </section>
+  );
+}
+
+function MyGoalsPage({
+  goals,
+  onCreateGoal,
+  onAddSavings,
+  onWithdraw,
+}) {
+  const totalGoals = goals.length;
+
+  const totalTarget = goals.reduce(
+    (sum, goal) => sum + Number(goal.target || 0),
+    0
+  );
+
+  const totalSaved = goals.reduce(
+    (sum, goal) => sum + Number(goal.saved || 0),
+    0
+  );
+
+  const averageProgress =
+    totalGoals > 0
+      ? goals.reduce(
+          (sum, goal) => sum + Number(goal.progress || 0),
+          0
+        ) / totalGoals
+      : 0;
+
+  return (
+    <section className="my-goals-page">
+
+      {/* HEADER */}
+      <div className="my-goals-header">
+
+        <div>
+          <h1>My Goals</h1>
+
+          <p>
+            Track and manage all your savings goals in one place.
+          </p>
+        </div>
+
+        <button
+          className="primary-btn"
+          onClick={onCreateGoal}
+        >
+          <Plus size={18} />
+          Create New Goal
+        </button>
+
+      </div>
+
+
+      {/* SUMMARY CARDS */}
+      <div className="my-goals-stats">
+
+        <div className="my-goal-stat purple">
+          <IconBadge tone="purple">
+            <Target size={29} />
+          </IconBadge>
+
+          <div>
+            <span>Total Goals</span>
+            <strong>{totalGoals}</strong>
+            <small>All created goals</small>
+          </div>
+        </div>
+
+
+        <div className="my-goal-stat green">
+          <IconBadge tone="green">
+            <Wallet size={29} />
+          </IconBadge>
+
+          <div>
+            <span>Total Target</span>
+            <strong>
+              {totalTarget.toFixed(2)} tUSDC
+            </strong>
+            <small>Across all goals</small>
+          </div>
+        </div>
+
+
+        <div className="my-goal-stat blue">
+          <IconBadge tone="blue">
+            <TrendingUp size={29} />
+          </IconBadge>
+
+          <div>
+            <span>Total Saved</span>
+            <strong>
+              {totalSaved.toFixed(2)} tUSDC
+            </strong>
+            <small>Progress so far</small>
+          </div>
+        </div>
+
+
+        <div className="my-goal-stat orange">
+          <IconBadge tone="orange">
+            <Activity size={29} />
+          </IconBadge>
+
+          <div>
+            <span>Avg Progress</span>
+            <strong>
+              {averageProgress.toFixed(2)}%
+            </strong>
+            <small>Overall progress</small>
+          </div>
+        </div>
+
+      </div>
+
+
+      {/* GOALS HEADER */}
+      <div className="all-goals-header">
+
+        <div>
+          <h2>All Goals ({goals.length})</h2>
+        </div>
+
+        <div className="goals-view-label">
+          <span>On-chain goals</span>
+        </div>
+
+      </div>
+
+
+      {/* GOALS GRID */}
+      {goals.length === 0 ? (
+
+        <div className="my-goals-empty">
+
+          <div className="my-goals-empty-icon">
+            <Target size={38} />
+          </div>
+
+          <h2>No savings goals yet</h2>
+
+          <p>
+            Create your first goal and start building
+            your decentralized savings plan.
+          </p>
+
+          <button
+            className="primary-btn"
+            onClick={onCreateGoal}
+          >
+            <Plus size={18} />
+            Create Your First Goal
+          </button>
+
+        </div>
+
+      ) : (
+
+        <div className="goals-grid">
+
+          {goals.map((goal) => {
+
+            const progress = Math.min(
+              100,
+              Math.max(
+                0,
+                Number(goal.progress || 0)
+              )
+            );
+
+            const status = goal.completed
+              ? "Completed"
+              : goal.active
+              ? "Active"
+              : "Withdrawn";
+
+            const deadline = goal.deadline
+              ? new Date(
+                  Number(goal.deadline) * 1000
+                ).toLocaleDateString(
+                  "en-GB",
+                  {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  }
+                )
+              : "—";
+
+            return (
+              <div
+                className="goal-list-card"
+                key={goal.id}
+              >
+
+                {/* CARD TOP */}
+                <div className="goal-list-top">
+
+                  <div className="goal-list-icon">
+                    <Target size={27} />
+                  </div>
+
+                  <div className="goal-list-heading">
+
+                    <div className="goal-list-name-row">
+
+                      <h3>
+                        {goal.name || `Goal #${goal.id + 1}`}
+                      </h3>
+
+                      <span
+                        className={`goal-status ${
+                          goal.completed
+                            ? "completed"
+                            : goal.active
+                            ? "active"
+                            : "withdrawn"
+                        }`}
+                      >
+                        {status}
+                      </span>
+
+                    </div>
+
+                    <span className="goal-id">
+                      Goal #{goal.id + 1}
+                    </span>
+
+                  </div>
+
+                </div>
+
+
+                {/* VALUES */}
+                <div className="goal-list-values">
+
+                  <div>
+                    <span>Target</span>
+
+                    <strong>
+                      {Number(goal.target).toFixed(2)} tUSDC
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>Saved</span>
+
+                    <strong className="saved-value">
+                      {Number(goal.saved).toFixed(2)} tUSDC
+                    </strong>
+                  </div>
+
+                </div>
+
+
+                {/* PROGRESS */}
+                <div className="goal-list-progress">
+
+                  <div className="goal-progress-label">
+                    <strong>
+                      {progress.toFixed(0)}%
+                    </strong>
+
+                    <span>
+                      {Number(goal.saved).toFixed(2)}
+                      {" / "}
+                      {Number(goal.target).toFixed(2)}
+                      {" tUSDC"}
+                    </span>
+                  </div>
+
+                  <div className="goal-progress-track">
+                    <div
+                      className="goal-progress-fill"
+                      style={{
+                        width: `${progress}%`,
+                      }}
+                    />
+                  </div>
+
+                </div>
+
+
+                {/* BOTTOM */}
+                <div className="goal-list-bottom">
+
+                  <div className="goal-deadline">
+                    <span>Deadline</span>
+                    <strong>{deadline}</strong>
+                  </div>
+
+                  <button
+                    className="goal-view-btn"
+                    onClick={() => {
+                      if (!goal.completed && goal.active) {
+                        onAddSavings(goal);
+                      }
+                    }}
+                  >
+                    {goal.completed
+                      ? "Completed"
+                      : goal.active
+                      ? "Add Savings"
+                      : "View Goal"}
+
+                    {!goal.completed &&
+                      goal.active && (
+                        <ChevronRight size={16} />
+                      )}
+                  </button>
+
+                </div>
+
+              </div>
+            );
+          })}
+
+        </div>
+
+      )}
+
+
+      {/* SECURITY BANNER */}
+      <div className="goals-security-banner">
+
+        <div className="goals-security-icon">
+          <ShieldCheck size={30} />
+        </div>
+
+        <div>
+          <h3>
+            Your goals are secured by Astra smart contracts.
+          </h3>
+
+          <p>
+            All your savings are protected and transparently
+            recorded on-chain.
+          </p>
+        </div>
+
+      </div>
+
+    </section>
   );
 }
 
@@ -126,10 +1008,22 @@ export function App() {
     yield: "0.00",
     total: "0.00",
   });
+  const [selectedGoal, setSelectedGoal] = useState(null);
+  const [goalData, setGoalData] = useState([]);
+  const currentGoal = goalData[0] || null;
+  const [yieldPool, setYieldPool] = useState("0.00");
 
-  const [goalData, setGoalData] = useState(null);
+  useEffect(() => {
+    if (active === "Yield Pool" && walletConnected) {
+      getYieldPool()
+        .then((pool) => setYieldPool(pool))
+        .catch((error) => {
+          console.error("Failed to load yield pool:", error);
+        });
+    }
+  }, [active, walletConnected]);
 
-   const [recentTransactions, setRecentTransactions] = useState([]);
+  const [recentTransactions, setRecentTransactions] = useState([]);
 
   const nav = useMemo(() => [
     ["Dashboard", Home],
@@ -166,8 +1060,12 @@ export function App() {
       const goal = await getGoalData(walletAddress);
       setGoalData(goal);
 
+      const pool = await getYieldPool();
+      setYieldPool(pool);
+
       const txs = await getRecentTransactions(walletAddress);
       setRecentTransactions(txs);
+
 
       notify("Dashboard refreshed from blockchain");
     } catch (error) {
@@ -216,6 +1114,12 @@ export function App() {
         target,
         deadline
       );
+
+      const updatedGoals = await getGoalData(walletAddress);
+      setGoalData(updatedGoals);
+
+      const txs = await getRecentTransactions(walletAddress);
+      setRecentTransactions(txs);
 
       setShowCreate(false);
 
@@ -311,223 +1215,258 @@ export function App() {
       </aside>
 
       <main className="main">
-        <header className="topbar">
-          <div className="welcome">
-            <div className="welcome-label">Welcome back,</div>
-            <div className="address-row">
-              <strong>
-                {walletConnected
-                  ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
-                  : "Not Connected"}
-              </strong>
-              {walletConnected && (
-                <Copy size={17} className="copy-icon" />
-              )}
-            </div>
-            <div className="connected">
-              <span className={walletConnected ? "green-dot" : "red-dot"} />
-              {walletConnected ? "Connected" : "Not Connected"}
-            </div>
+        {active === "Yield Pool" ? (
+          <YieldPoolPage
+            yieldPool={yieldPool}
+            walletConnected={walletConnected}
+            usdcBalance={usdcBalance}
+            setShowAction={setShowAction}
+          />
+        ) : active === "Transactions" ? (
 
-          </div>
+          <TransactionsPage
+            transactions={recentTransactions}
+            usdcBalance={usdcBalance}
+            onRefresh={refresh}
+            transactionLoading={refreshing}
+          />
+        
+        ) : active === "My Goals" ? (
 
-          <div className="balance-card">
-            <IconBadge tone="blue"><Coins size={31}/></IconBadge>
-            <div>
-              <div className="balance-label">USDC Balance</div>
-              <div className="balance-value">
-                {Number(usdcBalance).toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}{" "}
-                <span>tUSDC</span>
-              </div>
-              <div className="balance-sub">Test Token</div>
-            </div>
-            <button className="refresh-btn" onClick={refresh}>
-              <RefreshCw size={17} className={refreshing ? "spin" : ""}/>
-              Refresh
-            </button>
-          </div>
-        </header>
-
-        <section className="stats-grid">
-          <StatCard
-            icon={Wallet}
-            title="Total Savings"
-            value={`${Number(vaultData.total).toFixed(2)} tUSDC`}
-            subtitle="Principal + Yield"
-            tone="purple"
+          <MyGoalsPage
+            goals={goalData}
+            onCreateGoal={() => setShowCreate(true)}
+            onAddSavings={(goal) => {
+              setSelectedGoal(goal);
+              setShowAction("add");
+            }}
+            onWithdraw={(goal) => {
+              setShowAction("withdraw");
+            }}
           />
 
-          <StatCard
-            icon={Coins}
-            title="Total Principal"
-            value={`${Number(vaultData.principal).toFixed(2)} tUSDC`}
-            subtitle="Total Deposited"
-            tone="blue"
-          />
-
-          <StatCard
-            icon={TrendingUp}
-            title="Total Yield Earned"
-            value={`${Number(vaultData.yield).toFixed(2)} tUSDC`}
-            subtitle="+5.0% APY"
-            tone="green"
-          />
-
-          <StatCard
-            icon={Crosshair}
-            title="Active Goals"
-            value={goalData && Number(goalData.saved) > 0 ? "1" : "0"}
-            subtitle="In Progress"
-            tone="orange"
-          />
-        </section>
-
-        <div className="content-grid">
-          <section className="goals-section">
-            <div className="section-heading">
-              <h1>My Goals</h1>
-              <button className="primary-btn" onClick={() => setShowCreate(true)}>
-                <Plus size={18}/> Create New Goal
-              </button>
-            </div>
-
-            <div className="goal-card">
-              <div className="goal-top">
-                <div className="goal-icon"><LockKeyhole size={29}/></div>
-                <div className="goal-title-wrap">
-                  <div className="goal-name-line">
-                    <h2>{goalData ? goalData.name : "No Goal Yet"}</h2>
-                    <span className="status-pill">{goalData?.completed ? "Completed" : Number(goalData?.saved || 0) > 0 ? "Active" : "Withdrawn"}</span>
-                  </div>
-                  <div className="goal-target">Target: {goalData ? Number(goalData.target).toFixed(2) : "0.00"} tUSDC</div>
-                </div>
-                <button className="dots-btn" onClick={() => notify("Goal options opened")}>•••</button>
-              </div>
-
-              <div className="progress-row">
-                <div>
+        ) : (
+          <>
+              
+            <header className="topbar">    
+              <div className="welcome">
+                <div className="welcome-label">Welcome back,</div>
+                <div className="address-row">
                   <strong>
-                    {goalData ? Number(goalData.saved).toFixed(2) : "0.00"}
-                  </strong>{" "}
-                  /{" "}
-                  {goalData ? Number(goalData.target).toFixed(2) : "0.00"}{" "}
-                  <span>tUSDC</span>
-                </div>
-
-                <strong>
-                  {goalData ? goalData.progress : 0}%
-                </strong>
-              </div>
-              <div className="progress-track"><div className="progress-fill" style={{width: `${goalData ? goalData.progress : 0}%`}} /></div>
-
-              <div className="goal-metrics">
-                <div><span>Saved Amount</span><strong className="cyan-text">{goalData ? Number(goalData.saved).toFixed(2) : "0.00"} tUSDC</strong></div>
-                <div><span>Yield Earned</span><strong className="green-text">{goalData ? Number(goalData.yield).toFixed(6) : "0.000000"} tUSDC</strong></div>
-                <div><span>Monthly Yield</span><strong className="orange-text">{goalData ? (Number(goalData.target) * 0.05 / 12).toFixed(6) : "0.000000"}{" "} tUSDC</strong></div>
-                <div><span>Deadline</span>
-                  <strong className="pink-text">
-                    {goalData
-                      ? new Date(goalData.deadline * 1000).toLocaleDateString(
-                          "en-GB",
-                          {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          }
-                        )
-                      : "—"}
+                    {walletConnected
+                      ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+                      : "Not Connected"}
                   </strong>
+                  {walletConnected && (
+                    <Copy size={17} className="copy-icon" />
+                  )}
                 </div>
-              </div>
-
-              <div className="goal-actions">
-                <button className="action-blue" onClick={() => setShowAction("add")}>
-                  <Plus size={19}/> Add Savings
-                </button>
-                <button className="action-purple" onClick={() => setShowAction("withdraw")}>
-                  <ArrowUpRight size={19}/> Withdraw Goal
-                </button>
-              </div>
-            </div>
-
-            <div className="goal-summary">
-              <div>
-                <ClipboardList size={27}/>
-                <div><span>Total Goals</span><strong>{goalData ? 1 : 0}</strong></div>
-              </div>
-              <div>
-                <Check size={28}/>
-                <div><span>Completed Goals</span><strong>{goalData?.completed ? 1 : 0}</strong></div>
-              </div>
-              <div>
-                <div className="ring"><span>{goalData ? goalData.progress : 0}%</span></div>
-                <div><span>Completion Rate</span><strong>{goalData ? goalData.progress : 0}%</strong></div>
-              </div>
-            </div>
-          </section>
-
-          <aside className="right-column">
-            <div className="panel quick-panel">
-              <h3>Quick Actions</h3>
-              <button onClick={() => setShowAction("deposit")}><IconBadge tone="blue"><Download size={18}/></IconBadge>Deposit to Savings</button>
-              <button onClick={() => setShowCreate(true)}><IconBadge tone="purple"><Target size={18}/></IconBadge>Create New Goal</button>
-              <button onClick={() => setShowAction("add")}><IconBadge tone="green"><Plus size={18}/></IconBadge>Add Savings to Goal</button>
-              <button onClick={() => setShowAction("withdraw")}><IconBadge tone="orange"><ArrowUpRight size={18}/></IconBadge>Withdraw Savings</button>
-              <button onClick={() => setShowAction("yield")}><IconBadge tone="purple"><Coins size={18}/></IconBadge>Fund Yield Pool</button>
-            </div>
-
-            <div className="panel transactions">
-              <div className="panel-title-row">
-                <h3>Recent Transactions</h3>
-                <button onClick={() => setActive("Transactions")}>View All</button>
-              </div>
-              {recentTransactions.length === 0 ? (
-                <div className="empty-transactions">
-                  No recent transactions
+                <div className="connected">
+                  <span className={walletConnected ? "green-dot" : "red-dot"} />
+                  {walletConnected ? "Connected" : "Not Connected"}
                 </div>
-              ) : (
-                recentTransactions.map((tx, i) => (
-                  <div className="tx-row" key={`${tx.transactionHash}-${i}`}>
-                    <IconBadge tone={tx.tone}>
-                      {tx.title.includes("Withdraw") ? (
-                        <ArrowUpRight size={17} />
-                      ) : tx.title.includes("Deposit") ? (
-                        <ArrowDownToLine size={17} />
-                      ) : tx.title.includes("Goal") ? (
-                        <Target size={17} />
-                      ) : (
-                        <Coins size={17} />
-                      )}
-                    </IconBadge>
 
-                    <div className="tx-info">
-                      <div className="tx-title">
-                        {tx.title}
-                      </div>
+              </div>
 
-                      <div className="tx-meta">
-                        {tx.meta}
+              <div className="balance-card">
+                <IconBadge tone="blue"><Coins size={31}/></IconBadge>
+                <div>
+                  <div className="balance-label">USDC Balance</div>
+                  <div className="balance-value">
+                    {Number(usdcBalance).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    <span>tUSDC</span>
+                  </div>
+                  <div className="balance-sub">Test Token</div>
+                </div>
+                <button className="refresh-btn" onClick={refresh}>
+                  <RefreshCw size={17} className={refreshing ? "spin" : ""}/>
+                  Refresh
+                </button>
+              </div>
+            </header>
+
+            <section className="stats-grid">
+              <StatCard
+                icon={Wallet}
+                title="Total Savings"
+                value={`${Number(vaultData.total).toFixed(2)} tUSDC`}
+                subtitle="Principal + Yield"
+                tone="purple"
+              />
+
+              <StatCard
+                icon={Coins}
+                title="Total Principal"
+                value={`${Number(vaultData.principal).toFixed(2)} tUSDC`}
+                subtitle="Total Deposited"
+                tone="blue"
+              />
+
+              <StatCard
+                icon={TrendingUp}
+                title="Total Yield Earned"
+                value={`${Number(vaultData.yield).toFixed(2)} tUSDC`}
+                subtitle="+5.0% APY"
+                tone="green"
+              />
+
+              <StatCard
+                icon={Crosshair}
+                title="Active Goals"
+                value={goalData.filter((goal) => goal.active && !goal.completed).length}
+                subtitle="In Progress"
+                tone="orange"
+              />
+            </section>
+
+            <div className="content-grid">
+              <section className="goals-section">
+                <div className="section-heading">
+                  <h1>My Goals</h1>
+                  <button className="primary-btn" onClick={() => setShowCreate(true)}>
+                    <Plus size={18}/> Create New Goal
+                  </button>
+                </div>
+
+                <div className="goal-card">
+                  <div className="goal-top">
+                    <div className="goal-icon"><LockKeyhole size={29}/></div>
+                    <div className="goal-title-wrap">
+                      <div className="goal-name-line">
+                        <h2>{currentGoal ? currentGoal.name : "No Goal Yet"}</h2>
+                        <span className="status-pill">{currentGoal?.completed ? "Completed" : Number(currentGoal?.saved || 0) > 0 ? "Active" : "Withdrawn"}</span>
                       </div>
+                      <div className="goal-target">Target: {currentGoal ? Number(currentGoal.target).toFixed(2) : "0.00"} tUSDC</div>
+                    </div>
+                    <button className="dots-btn" onClick={() => notify("Goal options opened")}>•••</button>
+                  </div>
+
+                  <div className="progress-row">
+                    <div>
+                      <strong>
+                        {currentGoal ? Number(currentGoal.saved).toFixed(2) : "0.00"}
+                      </strong>{" "}
+                      /{" "}
+                      {currentGoal ? Number(currentGoal.target).toFixed(2) : "0.00"}{" "}
+                      <span>tUSDC</span>
                     </div>
 
-                    <div className={`tx-value ${tx.tone}`}>
-                      {tx.detail}
-                      <span>Success</span>
+                    <strong>
+                      {currentGoal ? currentGoal.progress : 0}%
+                    </strong>
+                  </div>
+                  <div className="progress-track"><div className="progress-fill" style={{width: `${currentGoal ? currentGoal.progress : 0}%`}} /></div>
+
+                  <div className="goal-metrics">
+                    <div><span>Saved Amount</span><strong className="cyan-text">{currentGoal ? Number(currentGoal.saved).toFixed(2) : "0.00"} tUSDC</strong></div>
+                    <div><span>Yield Earned</span><strong className="green-text">{currentGoal ? Number(currentGoal.yield).toFixed(6) : "0.000000"} tUSDC</strong></div>
+                    <div><span>Monthly Yield</span><strong className="orange-text">{currentGoal ? (Number(currentGoal.target) * 0.05 / 12).toFixed(6) : "0.000000"}{" "} tUSDC</strong></div>
+                    <div><span>Deadline</span>
+                      <strong className="pink-text">
+                        {currentGoal
+                          ? new Date(currentGoal.deadline * 1000).toLocaleDateString(
+                              "en-GB",
+                              {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              }
+                            )
+                          : "—"}
+                      </strong>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-          </aside>
-        </div>
 
-        <footer>
-          <ShieldCheck size={18}/> Astra Protocol ©2026. All rights reserved.
-        </footer>
-      </main>b 
+                  <div className="goal-actions">
+                    <button className="action-blue" onClick={() => setShowAction("add")}>
+                      <Plus size={19}/> Add Savings
+                    </button>
+                    <button className="action-purple" onClick={() => setShowAction("withdraw")}>
+                      <ArrowUpRight size={19}/> Withdraw Goal
+                    </button>
+                  </div>
+                </div>
+
+                <div className="goal-summary">
+                  <div>
+                    <ClipboardList size={27}/>
+                    <div><span>Total Goals</span><strong>{currentGoal ? 1 : 0}</strong></div>
+                  </div>
+                  <div>
+                    <Check size={28}/>
+                    <div><span>Completed Goals</span><strong>{currentGoal?.completed ? 1 : 0}</strong></div>
+                  </div>
+                  <div>
+                    <div className="ring"><span>{currentGoal ? currentGoal.progress : 0}%</span></div>
+                    <div><span>Completion Rate</span><strong>{currentGoal ? currentGoal.progress : 0}%</strong></div>
+                  </div>
+                </div>
+              </section>
+
+              <aside className="right-column">
+                <div className="panel quick-panel">
+                  <h3>Quick Actions</h3>
+                  <button onClick={() => setShowAction("deposit")}><IconBadge tone="blue"><Download size={18}/></IconBadge>Deposit to Savings</button>
+                  <button onClick={() => setShowCreate(true)}><IconBadge tone="purple"><Target size={18}/></IconBadge>Create New Goal</button>
+                  <button onClick={() => setShowAction("add")}><IconBadge tone="green"><Plus size={18}/></IconBadge>Add Savings to Goal</button>
+                  <button onClick={() => setShowAction("withdraw")}><IconBadge tone="orange"><ArrowUpRight size={18}/></IconBadge>Withdraw Savings</button>
+                  <button onClick={() => setShowAction("yield")}><IconBadge tone="purple"><Coins size={18}/></IconBadge>Fund Yield Pool</button>
+                </div>
+
+                <div className="panel transactions">
+                  <div className="panel-title-row">
+                    <h3>Recent Transactions</h3>
+                    <button onClick={() => setActive("Transactions")}>View All</button>
+                  </div>
+                  {recentTransactions.length === 0 ? (
+                    <div className="empty-transactions">
+                      No recent transactions
+                    </div>
+                  ) : (
+                    recentTransactions.slice(0, 3).map((tx, i) => (
+                      <div className="tx-row" key={`${tx.transactionHash}-${i}`}>
+                        <IconBadge tone={tx.tone}>
+                          {tx.title.includes("Withdraw") ? (
+                            <ArrowUpRight size={17} />
+                          ) : tx.title.includes("Deposit") ? (
+                            <ArrowDownToLine size={17} />
+                          ) : tx.title.includes("Goal") ? (
+                            <Target size={17} />
+                          ) : (
+                            <Coins size={17} />
+                          )}
+                        </IconBadge>
+
+                        <div className="tx-info">
+                          <div className="tx-title">
+                            {tx.title}
+                          </div>
+
+                          <div className="tx-meta">
+                            {tx.meta}
+                          </div>
+                        </div>
+
+                        <div className={`tx-value ${tx.tone}`}>
+                          {tx.detail}
+                          <span>Success</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </aside>
+            </div>
+
+            <footer>
+              <ShieldCheck size={18}/> Astra Protocol ©2026. All rights reserved.
+            </footer>
+          </>
+        )}
+      </main>
 
       {showCreate && (
         <Modal title="Create New Goal" onClose={() => setShowCreate(false)}>
@@ -676,7 +1615,7 @@ export function App() {
                         return;
                       }
 
-                      if (!goalData) {
+                      if (!currentGoal) {
                         notify("No goal found");
                         return;
                       }
@@ -694,7 +1633,7 @@ export function App() {
                       notify("Waiting for token approval...");
 
                       await fundGoalOnChain(
-                        goalData.id,
+                        selectedGoal.id,
                         goalFundingAmount
                       );
 
@@ -756,8 +1695,8 @@ export function App() {
                         return;
                       }
 
-                      if (!goalData) {
-                        notify("No goal found");
+                      if (!selectedGoal) {
+                        notify("Select a goal first");
                         return;
                       }
 
@@ -768,7 +1707,7 @@ export function App() {
                       );
 
                       await withdrawGoalOnChain(
-                        goalData.id
+                        currentGoal.id
                       );
 
                       // Refresh wallet balance
@@ -817,6 +1756,89 @@ export function App() {
                   {transactionLoading
                     ? "Processing..."
                     : "Confirm Withdrawal"}
+                </button>
+              </>
+            ) : showAction === "yield" ? (
+              <>
+                <h3>Fund Yield Pool</h3>
+
+                <p>
+                  Add tUSDC to the Astra yield pool to provide liquidity
+                  for goal withdrawals.
+                </p>
+
+                <label>
+                  Amount (tUSDC)
+
+                  <input
+                    value={goalFundingAmount}
+                    onChange={(e) =>
+                      setGoalFundingAmount(e.target.value)
+                    }
+                    inputMode="decimal"
+                    min="0"
+                    placeholder="1"
+                    disabled={transactionLoading}
+                  />
+                </label>
+
+                <button
+                  className="primary-btn wide"
+                  disabled={transactionLoading}
+                  onClick={async () => {
+                    try {
+                      if (!walletConnected) {
+                        notify("Connect your wallet first");
+                        return;
+                      }
+
+                      if (
+                        !goalFundingAmount ||
+                        Number(goalFundingAmount) <= 0
+                      ) {
+                        notify("Enter a valid amount");
+                        return;
+                      }
+
+                      setTransactionLoading(true);
+
+                      notify(
+                        "Confirm the yield pool transaction in MetaMask..."
+                      );
+
+                      await fundYieldOnChain(
+                        goalFundingAmount
+                      );
+
+                      const balance = await getUSDCBalance(
+                        walletAddress
+                      );
+
+                      setUsdcBalance(balance);
+
+                      setShowAction(null);
+
+                      notify("Yield pool funded successfully!");
+
+                    } catch (error) {
+                      console.error(
+                        "Yield pool funding failed:",
+                        error
+                      );
+
+                      notify(
+                        error?.reason ||
+                        error?.shortMessage ||
+                        "Yield pool funding failed"
+                      );
+                    } finally {
+                      setTransactionLoading(false);
+                    }
+                  }}
+                >
+                  {transactionLoading
+                    ? "Processing..."
+                    : "Fund Yield Pool"}
                 </button>
               </>
             ) : (

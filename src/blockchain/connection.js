@@ -150,41 +150,67 @@ export async function createGoalOnChain(
 export async function getGoalData(address) {
   const { goalVault } = await getContracts();
 
-  const count = await goalVault.goalCount();
+  const count = Number(await goalVault.goalCount());
 
-  if (Number(count) === 0) {
-    return null;
+  if (count === 0) {
+    return [];
   }
 
-  // For now we display the first goal (goalId = 0)
-  const goalId = 0;
+  const goals = [];
 
-  const goal = await goalVault.userGoals(
-    address,
-    goalId
-  );
+  for (let goalId = 0; goalId < count; goalId++) {
+    try {
+      const goal = await goalVault.userGoals(
+        address,
+        goalId
+      );
 
-  const progress = await goalVault.goalProgress(
-    goalId
-  );
+      const progress = await goalVault.goalProgress(
+        goalId
+      );
 
-  const yieldEarned = await goalVault.calculateGoalYield(
-    address,
-    goalId
-  );
+      const yieldEarned =
+        await goalVault.calculateGoalYield(
+          address,
+          goalId
+        );
 
-  return {
-    id: goalId,
-    name: goal.name,
-    target: ethers.formatUnits(goal.targetAmount, 6),
-    saved: ethers.formatUnits(goal.savedAmount, 6),
-    depositTime: Number(goal.depositTime),
-    deadline: Number(goal.deadline),
-    completed: goal.completed,
-    active: goal.active,
-    yield: ethers.formatUnits(yieldEarned, 6),
-    progress: Number(progress.percentage),
-  };
+      goals.push({
+        id: goalId,
+        name: goal.name,
+        target: ethers.formatUnits(
+          goal.targetAmount,
+          6
+        ),
+        saved: ethers.formatUnits(
+          goal.savedAmount,
+          6
+        ),
+        depositTime: Number(
+          goal.depositTime
+        ),
+        deadline: Number(
+          goal.deadline
+        ),
+        completed: goal.completed,
+        active: goal.active,
+        yield: ethers.formatUnits(
+          yieldEarned,
+          6
+        ),
+        progress: Number(
+          progress.percentage
+        ),
+      });
+    } catch (error) {
+      console.error(
+        `Failed to load goal ${goalId}:`,
+        error
+      );
+    }
+  }
+
+  return goals;
 }
 
 export async function fundGoalOnChain(goalId, amount) {
@@ -428,15 +454,50 @@ export async function getRecentTransactions(address) {
   }
 
   // ------------------------------------------------
+  // YIELD POOL EVENTS
+  // ------------------------------------------------
+
+  const yieldFundedEvents = await goalVault.queryFilter(
+    goalVault.filters.YieldFunded(),
+    fromBlock,
+    currentBlock
+  );
+
+  for (const event of yieldFundedEvents) {
+    const block = await provider.getBlock(
+      event.blockNumber
+    );
+
+    transactions.push({
+      title: "Fund Yield Pool",
+      detail: `+${Number(
+        ethers.formatUnits(event.args.amount, 6)
+      ).toFixed(2)} tUSDC`,
+      tone: "purple",
+      blockNumber: event.blockNumber,
+      transactionHash: event.transactionHash,
+      meta: block
+        ? new Date(
+            Number(block.timestamp) * 1000
+          ).toLocaleString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "Unknown date",
+    });
+  }
+
+  // ------------------------------------------------
   // SORT NEWEST → OLDEST
   // ------------------------------------------------
 
-  return transactions
-    .sort(
-      (a, b) =>
-        b.blockNumber - a.blockNumber
-    )
-    .slice(0, 5);
+  return transactions.sort(
+    (a, b) =>
+      b.blockNumber - a.blockNumber
+  );
 }
 
 export async function withdrawGoalOnChain(goalId) {
@@ -447,4 +508,38 @@ export async function withdrawGoalOnChain(goalId) {
   const receipt = await tx.wait();
 
   return receipt;
+}
+
+export async function fundYieldOnChain(amount) {
+  const { usdc, goalVault } = await getContracts();
+
+  const amountInUnits = ethers.parseUnits(
+    amount.toString(),
+    6
+  );
+
+  // 1. Approve AstraGoalVault to spend tUSDC
+  const approvalTx = await usdc.approve(
+    CONTRACTS.ASTRA_GOAL_VAULT,
+    amountInUnits
+  );
+
+  await approvalTx.wait();
+
+  // 2. Fund the yield pool
+  const fundTx = await goalVault.fundYield(
+    amountInUnits
+  );
+
+  const receipt = await fundTx.wait();
+
+  return receipt;
+}
+
+export async function getYieldPool() {
+  const { goalVault } = await getContracts();
+
+  const pool = await goalVault.yieldPool();
+
+  return ethers.formatUnits(pool, 6);
 }
