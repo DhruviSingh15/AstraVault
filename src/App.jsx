@@ -39,14 +39,6 @@ import {
   Zap,
 } from "lucide-react";
 
-
-const transactions = [
-  { icon: ArrowUpRight, title: "Withdraw Goal", detail: "+102.47 tUSDC", meta: "2 Jun 2024, 12:45 PM", tone: "green" },
-  { icon: ArrowDownToLine, title: "Add Savings", detail: "-100.00 tUSDC", meta: "15 Nov 2023, 10:30 AM", tone: "red" },
-  { icon: Target, title: "Create Goal", detail: "Emergency Fund", meta: "15 Nov 2023, 10:25 AM", tone: "purple" },
-  { icon: Coins, title: "Fund Yield Pool", detail: "+500.00 tUSDC", meta: "10 Nov 2023, 09:15 AM", tone: "purple" },
-];
-
 function IconBadge({ children, tone = "purple" }) {
   return <span className={`icon-badge ${tone}`}>{children}</span>;
 }
@@ -387,7 +379,7 @@ export function App() {
           <StatCard
             icon={Crosshair}
             title="Active Goals"
-            value="1"
+            value={goalData && Number(goalData.saved) > 0 ? "1" : "0"}
             subtitle="In Progress"
             tone="orange"
           />
@@ -408,7 +400,7 @@ export function App() {
                 <div className="goal-title-wrap">
                   <div className="goal-name-line">
                     <h2>{goalData ? goalData.name : "No Goal Yet"}</h2>
-                    <span className="status-pill">{goalData?.completed ? "Completed" : "Active"}</span>
+                    <span className="status-pill">{goalData?.completed ? "Completed" : Number(goalData?.saved || 0) > 0 ? "Active" : "Withdrawn"}</span>
                   </div>
                   <div className="goal-target">Target: {goalData ? Number(goalData.target).toFixed(2) : "0.00"} tUSDC</div>
                 </div>
@@ -434,7 +426,7 @@ export function App() {
               <div className="goal-metrics">
                 <div><span>Saved Amount</span><strong className="cyan-text">{goalData ? Number(goalData.saved).toFixed(2) : "0.00"} tUSDC</strong></div>
                 <div><span>Yield Earned</span><strong className="green-text">{goalData ? Number(goalData.yield).toFixed(6) : "0.000000"} tUSDC</strong></div>
-                <div><span>Monthly Yield</span><strong className="orange-text">{goalData ? (Number(goalData.target) * 0.05 / 12).toFixed(2) : "0.00"}{" "} tUSDC</strong></div>
+                <div><span>Monthly Yield</span><strong className="orange-text">{goalData ? (Number(goalData.target) * 0.05 / 12).toFixed(6) : "0.000000"}{" "} tUSDC</strong></div>
                 <div><span>Deadline</span>
                   <strong className="pink-text">
                     {goalData
@@ -464,7 +456,7 @@ export function App() {
             <div className="goal-summary">
               <div>
                 <ClipboardList size={27}/>
-                <div><span>Total Goals</span><strong>1</strong></div>
+                <div><span>Total Goals</span><strong>{goalData ? 1 : 0}</strong></div>
               </div>
               <div>
                 <Check size={28}/>
