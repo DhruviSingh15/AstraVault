@@ -18,7 +18,9 @@ import {
   ArrowDownToLine,
   ArrowRight,
   ArrowUpRight,
+  ChevronDown,
   BarChart3,
+  Bell,
   Check,
   ChevronRight,
   ChevronLeft,
@@ -28,21 +30,30 @@ import {
   Copy,
   Crosshair,
   Download,
+  Globe2,
   Home,
+  List,
   Landmark,
   LockKeyhole,
+  LogOut,
+  Moon,
   Plus,
+  Info,
   RefreshCw,
+  RotateCcw,
   Settings,
   ShieldCheck,
+  ShieldAlert,
   SlidersHorizontal,
   Target,
   TrendingUp,
+  Trash2,
   Wallet,
   WalletCards,
   X,
   Zap,
   Percent,
+  Palette,
   Lock,
   ExternalLink,
 } from "lucide-react";
@@ -1508,6 +1519,1588 @@ function SavingsPage({
   );
 }
 
+function AnalyticsPage({
+  transactions = [],
+  goals = [],
+  vaultData = {},
+}) {
+  const getAmount = (tx) => {
+    const match = String(tx?.detail || "").match(/[\d.]+/);
+    return match ? Number(match[0]) : 0;
+  };
+
+  const deposits = transactions.filter((tx) => {
+    const title = String(tx?.title || "").toLowerCase();
+
+    return (
+      title.includes("deposit") ||
+      title.includes("add savings")
+    );
+  });
+
+  const withdrawals = transactions.filter((tx) => {
+    const title = String(tx?.title || "").toLowerCase();
+
+    return title.includes("withdraw");
+  });
+
+  const yieldTransactions = transactions.filter((tx) =>
+    String(tx?.title || "")
+      .toLowerCase()
+      .includes("yield")
+  );
+
+  const totalDeposited = deposits.reduce(
+    (sum, tx) => sum + getAmount(tx),
+    0
+  );
+
+  const totalWithdrawn = withdrawals.reduce(
+    (sum, tx) => sum + getAmount(tx),
+    0
+  );
+
+  const averageDeposit =
+    deposits.length > 0
+      ? totalDeposited / deposits.length
+      : 0;
+
+  const netSavings =
+    totalDeposited - totalWithdrawn;
+
+  const principal = Number(vaultData?.principal || 0);
+  const yieldEarned = Number(vaultData?.yield || 0);
+
+  const yieldEfficiency =
+    principal > 0
+      ? (yieldEarned / principal) * 100
+      : 0;
+
+  const savingsGrowth =
+    totalDeposited > 0
+      ? (netSavings / totalDeposited) * 100
+      : 0;
+
+  const activityScore = Math.min(
+    100,
+    deposits.length * 10
+  );
+
+  /* ---------------------------------------
+     MOST ACTIVE DAY
+  --------------------------------------- */
+
+  const dayCounts = {};
+
+  deposits.forEach((tx) => {
+    if (!tx?.meta) return;
+
+    const date = new Date(tx.meta);
+
+    if (Number.isNaN(date.getTime())) return;
+
+    const day = date.toLocaleDateString(
+      "en-US",
+      { weekday: "long" }
+    );
+
+    dayCounts[day] =
+      (dayCounts[day] || 0) + 1;
+  });
+
+  const mostActiveDay =
+    Object.entries(dayCounts)
+      .sort((a, b) => b[1] - a[1])[0]?.[0] ||
+    "Not enough data";
+
+  /* ---------------------------------------
+     CHART DATA
+  --------------------------------------- */
+
+  const chartTransactions = [...transactions]
+    .filter((tx) => getAmount(tx) > 0)
+    .sort(
+      (a, b) =>
+        Number(a.blockNumber || 0) -
+        Number(b.blockNumber || 0)
+    )
+    .slice(-12);
+
+  const maxChartAmount = Math.max(
+    ...chartTransactions.map(getAmount),
+    1
+  );
+
+  /* ---------------------------------------
+     INSIGHT
+  --------------------------------------- */
+
+  let insight;
+
+  if (transactions.length === 0) {
+    insight =
+      "Start saving to unlock personalized analytics based on your on-chain activity.";
+  } else if (savingsGrowth >= 70) {
+    insight =
+      "Your savings activity is trending positively. Keep maintaining your current contribution pattern.";
+  } else if (savingsGrowth >= 30) {
+    insight =
+      "Your savings are building steadily. Increasing contribution consistency could improve your overall progress.";
+  } else {
+    insight =
+      "Your savings activity is still developing. Regular contributions can strengthen your savings trajectory.";
+  }
+
+  return (
+    <section className="analytics-page">
+
+      {/* ====================================
+          HEADER
+      ==================================== */}
+
+      <div className="analytics-header">
+
+        <div>
+          <h1>Analytics</h1>
+
+          <p>
+            Understand your savings patterns
+            and performance.
+          </p>
+        </div>
+
+        <div className="analytics-live">
+          <span />
+          Live On-Chain Data
+        </div>
+
+      </div>
+
+
+      {/* ====================================
+          KPI CARDS
+      ==================================== */}
+
+      <div className="analytics-kpi-grid">
+
+        <div className="analytics-kpi-card growth">
+
+          <div className="analytics-kpi-icon">
+            <TrendingUp size={21} />
+          </div>
+
+          <span>Savings Growth</span>
+
+          <strong>
+            {savingsGrowth.toFixed(1)}%
+          </strong>
+
+          <small>
+            Net savings growth
+          </small>
+
+        </div>
+
+
+        <div className="analytics-kpi-card deposited">
+
+          <div className="analytics-kpi-icon">
+            <ArrowDownToLine size={21} />
+          </div>
+
+          <span>Total Deposited</span>
+
+          <strong>
+            {totalDeposited.toFixed(2)}
+            {" "}tUSDC
+          </strong>
+
+          <small>
+            {deposits.length} transactions
+          </small>
+
+        </div>
+
+
+        <div className="analytics-kpi-card withdrawn">
+
+          <div className="analytics-kpi-icon">
+            <ArrowUpRight size={21} />
+          </div>
+
+          <span>Total Withdrawn</span>
+
+          <strong>
+            {totalWithdrawn.toFixed(2)}
+            {" "}tUSDC
+          </strong>
+
+          <small>
+            {withdrawals.length} transactions
+          </small>
+
+        </div>
+
+
+        <div className="analytics-kpi-card yield">
+
+          <div className="analytics-kpi-icon">
+            <Zap size={21} />
+          </div>
+
+          <span>Yield Earned</span>
+
+          <strong>
+            {yieldEarned.toFixed(4)}
+            {" "}tUSDC
+          </strong>
+
+          <small>
+            From yield activity
+          </small>
+
+        </div>
+
+      </div>
+
+
+      {/* ====================================
+          SAVINGS ACTIVITY
+      ==================================== */}
+
+      <div className="analytics-card">
+
+        <div className="analytics-card-heading">
+
+          <div>
+            <h2>Savings Activity Over Time</h2>
+
+            <p>
+              Deposits and withdrawals from
+              recorded blockchain activity.
+            </p>
+          </div>
+
+          <div className="analytics-net">
+            Net{" "}
+            {netSavings >= 0 ? "+" : ""}
+            {netSavings.toFixed(2)} tUSDC
+          </div>
+
+        </div>
+
+
+        <div className="analytics-chart">
+
+          {chartTransactions.length === 0 ? (
+
+            <div className="analytics-empty">
+
+              <BarChart3 size={34} />
+
+              <strong>
+                Not enough activity yet
+              </strong>
+
+              <span>
+                Your blockchain activity will
+                appear here.
+              </span>
+
+            </div>
+
+          ) : (
+
+            <div className="analytics-bars">
+
+              {chartTransactions.map((tx, index) => {
+
+                const amount = getAmount(tx);
+
+                const isWithdrawal =
+                  String(tx?.title || "")
+                    .toLowerCase()
+                    .includes("withdraw");
+
+                const height =
+                  Math.max(
+                    12,
+                    (amount / maxChartAmount) * 150
+                  );
+
+                return (
+                  <div
+                    className="analytics-bar-wrapper"
+                    key={
+                      tx.transactionHash ||
+                      index
+                    }
+                  >
+
+                    <div
+                      className={
+                        isWithdrawal
+                          ? "analytics-bar withdrawal"
+                          : "analytics-bar deposit"
+                      }
+                      style={{
+                        height: `${height}px`,
+                      }}
+                    />
+
+                    <span>
+                      {isWithdrawal
+                        ? "Out"
+                        : "In"}
+                    </span>
+
+                  </div>
+                );
+              })}
+
+            </div>
+
+          )}
+
+        </div>
+
+
+        <div className="analytics-legend">
+
+          <span>
+            <i className="deposit-dot" />
+            Deposits
+          </span>
+
+          <span>
+            <i className="withdraw-dot" />
+            Withdrawals
+          </span>
+
+        </div>
+
+      </div>
+
+
+      {/* ====================================
+          GOALS + BEHAVIOR
+      ==================================== */}
+
+      <div className="analytics-grid-2">
+
+
+        {/* GOAL PERFORMANCE */}
+
+        <div className="analytics-card">
+
+          <div className="analytics-card-heading">
+
+            <div>
+              <h2>Goal Performance</h2>
+
+              <p>
+                Progress across your goals.
+              </p>
+            </div>
+
+            <Target size={20} />
+
+          </div>
+
+
+          <div className="analytics-goals">
+
+            {goals.length === 0 ? (
+
+              <div className="analytics-small-empty">
+                No goals available.
+              </div>
+
+            ) : (
+
+              goals.map((goal, index) => {
+
+                const target =
+                  Number(goal?.target || 0);
+
+                const saved =
+                  Number(goal?.saved || 0);
+
+                const progress =
+                  target > 0
+                    ? Math.min(
+                        100,
+                        (saved / target) * 100
+                      )
+                    : Number(
+                        goal?.progress || 0
+                      );
+
+                return (
+                  <div
+                    className="analytics-goal-row"
+                    key={
+                      goal?.id ??
+                      index
+                    }
+                  >
+
+                    <div className="analytics-goal-info">
+
+                      <strong>
+                        {goal?.name ||
+                          `Goal #${index + 1}`}
+                      </strong>
+
+                      <span>
+                        {saved.toFixed(2)}
+                        {" / "}
+                        {target.toFixed(2)}
+                        {" tUSDC"}
+                      </span>
+
+                    </div>
+
+
+                    <div className="analytics-goal-progress">
+
+                      <div className="analytics-progress-track">
+
+                        <div
+                          className="analytics-progress-fill"
+                          style={{
+                            width:
+                              `${progress}%`,
+                          }}
+                        />
+
+                      </div>
+
+                    </div>
+
+
+                    <strong className="analytics-goal-percent">
+                      {progress.toFixed(0)}%
+                    </strong>
+
+                  </div>
+                );
+              })
+
+            )}
+
+          </div>
+
+        </div>
+
+
+        {/* SAVINGS BEHAVIOR */}
+
+        <div className="analytics-card">
+
+          <div className="analytics-card-heading">
+
+            <div>
+              <h2>Savings Behavior</h2>
+
+              <p>
+                Derived from your activity.
+              </p>
+            </div>
+
+            <Activity size={20} />
+
+          </div>
+
+
+          <div className="analytics-behavior">
+
+            <div className="analytics-behavior-row">
+
+              <span>
+                Average Deposit
+              </span>
+
+              <strong>
+                {averageDeposit.toFixed(2)}
+                {" "}tUSDC
+              </strong>
+
+            </div>
+
+
+            <div className="analytics-behavior-row">
+
+              <span>
+                Number of Deposits
+              </span>
+
+              <strong>
+                {deposits.length}
+              </strong>
+
+            </div>
+
+
+            <div className="analytics-behavior-row">
+
+              <span>
+                Number of Withdrawals
+              </span>
+
+              <strong>
+                {withdrawals.length}
+              </strong>
+
+            </div>
+
+
+            <div className="analytics-behavior-row">
+
+              <span>
+                Most Active Day
+              </span>
+
+              <strong>
+                {mostActiveDay}
+              </strong>
+
+            </div>
+
+
+            <div className="analytics-behavior-row">
+
+              <span>
+                Activity Score
+              </span>
+
+              <strong>
+                {activityScore}/100
+              </strong>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      {/* ====================================
+          YIELD PERFORMANCE
+      ==================================== */}
+
+      <div className="analytics-card">
+
+        <div className="analytics-card-heading">
+
+          <div>
+            <h2>Yield Performance</h2>
+
+            <p>
+              Your earnings from the yield pool.
+            </p>
+          </div>
+
+          <div className="analytics-yield-label">
+            <Zap size={15} />
+            Yield
+          </div>
+
+        </div>
+
+
+        <div className="analytics-yield-grid">
+
+          <div>
+            <span>Yield Earned</span>
+
+            <strong>
+              {yieldEarned.toFixed(4)}
+              {" "}tUSDC
+            </strong>
+
+            <small>
+              Total earned
+            </small>
+          </div>
+
+
+          <div>
+            <span>Principal</span>
+
+            <strong>
+              {principal.toFixed(2)}
+              {" "}tUSDC
+            </strong>
+
+            <small>
+              Savings principal
+            </small>
+          </div>
+
+
+          <div>
+            <span>Yield / Principal</span>
+
+            <strong>
+              {yieldEfficiency.toFixed(2)}%
+            </strong>
+
+            <small>
+              Earnings ratio
+            </small>
+          </div>
+
+
+          <div>
+            <span>Yield Transactions</span>
+
+            <strong>
+              {yieldTransactions.length}
+            </strong>
+
+            <small>
+              Recorded activity
+            </small>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      {/* ====================================
+          ASTRA INSIGHT
+      ==================================== */}
+
+      <div className="analytics-insight">
+
+        <div className="analytics-insight-icon">
+          <Zap size={22} />
+        </div>
+
+        <div>
+
+          <span>Astra Insight</span>
+
+          <h3>
+            {insight}
+          </h3>
+
+          <p>
+            This insight is calculated from
+            your recorded on-chain activity.
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+  );
+}
+
+function SettingsPage({
+  walletAddress,
+  disconnectWallet,
+}) {
+  const [confirmTransactions, setConfirmTransactions] =
+    React.useState(
+      localStorage.getItem("astra_confirm_transactions") !== "false"
+    );
+
+  const [autoRefresh, setAutoRefresh] =
+    React.useState(
+      localStorage.getItem("astra_auto_refresh") !== "false"
+    );
+
+  const [notifications, setNotifications] =
+    React.useState(
+      localStorage.getItem("astra_notifications") !== "false"
+    );
+
+  const [compactTransactions, setCompactTransactions] =
+    React.useState(
+      localStorage.getItem("astra_compact_transactions") !== "false"
+    );
+
+  const [copied, setCopied] = React.useState("");
+
+  const vaultContract =
+    "0x3ea3cdc400b362f0f34b0435c3abec0628d68ac8";
+
+  const goalVaultContract =
+    "0x8f57e8f4e1b1c7a93e9b6adf5cbb8c2a4d7f1e2a";
+
+  const chainId = "11155111";
+
+  const shortAddress = walletAddress
+    ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+    : "Not connected";
+
+  const savePreference = (key, value) => {
+    localStorage.setItem(key, String(value));
+  };
+
+  const copyText = async (text, type) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(type);
+
+      setTimeout(() => {
+        setCopied("");
+      }, 1500);
+    } catch (error) {
+      console.error("Copy failed:", error);
+    }
+  };
+
+  const resetPreferences = () => {
+    localStorage.removeItem("astra_confirm_transactions");
+    localStorage.removeItem("astra_auto_refresh");
+    localStorage.removeItem("astra_notifications");
+    localStorage.removeItem("astra_compact_transactions");
+
+    setConfirmTransactions(true);
+    setAutoRefresh(true);
+    setNotifications(true);
+    setCompactTransactions(true);
+  };
+
+  const clearLocalData = () => {
+    const confirmed = window.confirm(
+      "Clear Astra local preferences and cached data?"
+    );
+
+    if (!confirmed) return;
+
+    localStorage.clear();
+
+    setConfirmTransactions(true);
+    setAutoRefresh(true);
+    setNotifications(true);
+    setCompactTransactions(true);
+  };
+
+  const openExplorer = () => {
+    window.open(
+      `https://sepolia.etherscan.io/address/${vaultContract}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  };
+
+  return (
+    <section className="settings-page">
+
+      {/* =====================================
+          HEADER
+      ===================================== */}
+
+      <div className="settings-header">
+
+        <div>
+          <h1>Settings</h1>
+
+          <p>
+            Manage your account, preferences and
+            app configuration.
+          </p>
+        </div>
+
+      </div>
+
+
+      {/* =====================================
+          1. ACCOUNT / WALLET
+      ===================================== */}
+
+      <div className="settings-card settings-account-card">
+
+        <div className="settings-section-title">
+          <h2>1. Account / Wallet</h2>
+        </div>
+
+
+        <div className="settings-account-content">
+
+          <div className="settings-wallet-section">
+
+            <div className="settings-large-icon purple">
+              <Wallet size={25} />
+            </div>
+
+            <div className="settings-wallet-info">
+
+              <span>Connected Wallet</span>
+
+              <div className="settings-address-row">
+
+                <strong>
+                  {walletAddress || "Not connected"}
+                </strong>
+
+                {walletAddress && (
+                  <button
+                    className="settings-copy-button"
+                    onClick={() =>
+                      copyText(
+                        walletAddress,
+                        "wallet"
+                      )
+                    }
+                    title="Copy wallet address"
+                  >
+                    {copied === "wallet" ? (
+                      <Check size={15} />
+                    ) : (
+                      <Copy size={15} />
+                    )}
+                  </button>
+                )}
+
+              </div>
+
+              <div className="settings-connected-badge">
+                <span />
+                {walletAddress
+                  ? "Connected"
+                  : "Not Connected"}
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div className="settings-account-divider" />
+
+
+          <div className="settings-network-section">
+
+            <div className="settings-large-icon blue">
+              <Globe2 size={25} />
+            </div>
+
+            <div>
+
+              <span>Network</span>
+
+              <strong>
+                Sepolia Testnet
+              </strong>
+
+              <small>
+                Chain ID: {chainId}
+              </small>
+
+            </div>
+
+          </div>
+
+
+          <button
+            className="settings-danger-button"
+            onClick={disconnectWallet}
+            disabled={!walletAddress}
+          >
+            <LogOut size={16} />
+            Disconnect Wallet
+          </button>
+
+        </div>
+
+      </div>
+
+
+      {/* =====================================
+          2 + 3
+      ===================================== */}
+
+      <div className="settings-two-column">
+
+
+        {/* TRANSACTION PREFERENCES */}
+
+        <div className="settings-card">
+
+          <div className="settings-section-title">
+            <h2>2. Transaction Preferences</h2>
+          </div>
+
+
+          <div className="settings-option-list">
+
+            <label className="settings-option">
+
+              <div className="settings-option-icon purple">
+                <ShieldCheck size={18} />
+              </div>
+
+              <div className="settings-option-text">
+
+                <strong>
+                  Confirm before transactions
+                </strong>
+
+                <span>
+                  Ask for confirmation before
+                  sending a transaction.
+                </span>
+
+              </div>
+
+              <button
+                type="button"
+                className={
+                  `settings-toggle ${
+                    confirmTransactions
+                      ? "active"
+                      : ""
+                  }`
+                }
+                onClick={() => {
+                  const value =
+                    !confirmTransactions;
+
+                  setConfirmTransactions(value);
+
+                  savePreference(
+                    "astra_confirm_transactions",
+                    value
+                  );
+                }}
+              >
+                <span />
+              </button>
+
+            </label>
+
+
+            <label className="settings-option">
+
+              <div className="settings-option-icon blue">
+                <RefreshCw size={18} />
+              </div>
+
+              <div className="settings-option-text">
+
+                <strong>
+                  Auto-refresh blockchain data
+                </strong>
+
+                <span>
+                  Automatically refresh balances
+                  and transaction data.
+                </span>
+
+              </div>
+
+              <button
+                type="button"
+                className={
+                  `settings-toggle ${
+                    autoRefresh ? "active" : ""
+                  }`
+                }
+                onClick={() => {
+                  const value = !autoRefresh;
+
+                  setAutoRefresh(value);
+
+                  savePreference(
+                    "astra_auto_refresh",
+                    value
+                  );
+                }}
+              >
+                <span />
+              </button>
+
+            </label>
+
+
+            <label className="settings-option">
+
+              <div className="settings-option-icon green">
+                <Bell size={18} />
+              </div>
+
+              <div className="settings-option-text">
+
+                <strong>
+                  Transaction notifications
+                </strong>
+
+                <span>
+                  Show success and failure
+                  notifications.
+                </span>
+
+              </div>
+
+              <button
+                type="button"
+                className={
+                  `settings-toggle ${
+                    notifications ? "active" : ""
+                  }`
+                }
+                onClick={() => {
+                  const value = !notifications;
+
+                  setNotifications(value);
+
+                  savePreference(
+                    "astra_notifications",
+                    value
+                  );
+                }}
+              >
+                <span />
+              </button>
+
+            </label>
+
+          </div>
+
+        </div>
+
+
+        {/* DISPLAY PREFERENCES */}
+
+        <div className="settings-card">
+
+          <div className="settings-section-title">
+            <h2>3. Display Preferences</h2>
+          </div>
+
+
+          <div className="settings-option-list">
+
+
+            <div className="settings-display-row">
+
+              <div className="settings-option-icon purple">
+                <Moon size={18} />
+              </div>
+
+              <div className="settings-option-text">
+
+                <strong>Theme</strong>
+
+                <span>
+                  Choose your preferred theme.
+                </span>
+
+              </div>
+
+              <div className="settings-select">
+                Dark
+                <ChevronDown size={14} />
+              </div>
+
+            </div>
+
+
+            <div className="settings-display-row">
+
+              <div className="settings-option-icon blue">
+                <Palette size={18} />
+              </div>
+
+              <div className="settings-option-text">
+
+                <strong>
+                  Currency Display
+                </strong>
+
+                <span>
+                  Choose how amounts are displayed.
+                </span>
+
+              </div>
+
+              <div className="settings-select">
+                tUSDC
+                <ChevronDown size={14} />
+              </div>
+
+            </div>
+
+
+            <div className="settings-display-row">
+
+              <div className="settings-option-icon green">
+                <List size={18} />
+              </div>
+
+              <div className="settings-option-text">
+
+                <strong>
+                  Compact Transaction List
+                </strong>
+
+                <span>
+                  Show more items in transaction lists.
+                </span>
+
+              </div>
+
+              <button
+                type="button"
+                className={
+                  `settings-toggle ${
+                    compactTransactions
+                      ? "active"
+                      : ""
+                  }`
+                }
+                onClick={() => {
+                  const value =
+                    !compactTransactions;
+
+                  setCompactTransactions(value);
+
+                  savePreference(
+                    "astra_compact_transactions",
+                    value
+                  );
+                }}
+              >
+                <span />
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      {/* =====================================
+          4. NETWORK & BLOCKCHAIN
+      ===================================== */}
+
+      <div className="settings-card">
+
+        <div className="settings-section-title">
+          <h2>4. Network & Blockchain</h2>
+        </div>
+
+
+        <div className="settings-blockchain-content">
+
+          <div className="settings-blockchain-intro">
+
+            <div className="settings-large-icon blue">
+              <Globe2 size={28} />
+            </div>
+
+            <h3>
+              Network Information
+            </h3>
+
+            <p>
+              Current blockchain network and
+              smart contract details.
+            </p>
+
+          </div>
+
+
+          <div className="settings-blockchain-details">
+
+            <div className="settings-detail-row">
+              <span>Network</span>
+              <strong>Sepolia Testnet</strong>
+            </div>
+
+            <div className="settings-detail-row">
+              <span>Chain ID</span>
+              <strong>{chainId}</strong>
+            </div>
+
+
+            <div className="settings-detail-row">
+
+              <span>Astra Vault Contract</span>
+
+              <div className="settings-contract">
+
+                <strong>
+                  {vaultContract.slice(0, 10)}
+                  ...
+                  {vaultContract.slice(-8)}
+                </strong>
+
+                <button
+                  onClick={() =>
+                    copyText(
+                      vaultContract,
+                      "vault"
+                    )
+                  }
+                >
+                  {copied === "vault" ? (
+                    <Check size={14} />
+                  ) : (
+                    <Copy size={14} />
+                  )}
+                </button>
+
+              </div>
+
+            </div>
+
+
+            <div className="settings-detail-row">
+
+              <span>Astra Goal Vault Contract</span>
+
+              <div className="settings-contract">
+
+                <strong>
+                  {goalVaultContract.slice(0, 10)}
+                  ...
+                  {goalVaultContract.slice(-8)}
+                </strong>
+
+                <button
+                  onClick={() =>
+                    copyText(
+                      goalVaultContract,
+                      "goal"
+                    )
+                  }
+                >
+                  {copied === "goal" ? (
+                    <Check size={14} />
+                  ) : (
+                    <Copy size={14} />
+                  )}
+                </button>
+
+              </div>
+
+            </div>
+
+
+            <div className="settings-detail-row">
+
+              <span>Block Explorer</span>
+
+              <button
+                className="settings-explorer-button"
+                onClick={openExplorer}
+              >
+                View on Sepolia Etherscan
+                <ExternalLink size={14} />
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div className="settings-network-notice">
+
+          <Info size={17} />
+
+          <span>
+            You are connected to Sepolia Testnet.
+            All transactions are recorded on the
+            test network.
+          </span>
+
+        </div>
+
+      </div>
+
+
+      {/* =====================================
+          5 + 6
+      ===================================== */}
+
+      <div className="settings-two-column">
+
+
+        {/* SECURITY */}
+
+        <div className="settings-card">
+
+          <div className="settings-section-title">
+            <h2>5. Security & Privacy</h2>
+          </div>
+
+
+          <div className="settings-management-list">
+
+
+            <div className="settings-management-row">
+
+              <div className="settings-option-icon purple">
+                <LockKeyhole size={18} />
+              </div>
+
+              <div className="settings-option-text">
+
+                <strong>
+                  Wallet Security
+                </strong>
+
+                <span>
+                  Your private keys are secured
+                  by MetaMask.
+                </span>
+
+              </div>
+
+              <ChevronRight size={16} />
+
+            </div>
+
+
+            <div className="settings-management-row">
+
+              <div className="settings-option-icon red">
+                <ShieldAlert size={18} />
+              </div>
+
+              <div className="settings-option-text">
+
+                <strong>
+                  Revoke & Disconnect
+                </strong>
+
+                <span>
+                  Disconnect your wallet from Astra.
+                </span>
+
+              </div>
+
+              <button
+                className="settings-small-danger"
+                onClick={disconnectWallet}
+              >
+                Disconnect
+              </button>
+
+            </div>
+
+
+            <div className="settings-management-row">
+
+              <div className="settings-option-icon gold">
+                <ShieldCheck size={18} />
+              </div>
+
+              <div className="settings-option-text">
+
+                <strong>
+                  Privacy Information
+                </strong>
+
+                <span>
+                  Blockchain transactions are
+                  publicly recorded.
+                </span>
+
+              </div>
+
+              <ChevronRight size={16} />
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        {/* DATA MANAGEMENT */}
+
+        <div className="settings-card">
+
+          <div className="settings-section-title">
+            <h2>6. Data & Management</h2>
+          </div>
+
+
+          <div className="settings-management-list">
+
+
+            <div className="settings-management-row">
+
+              <div className="settings-option-icon blue">
+                <Trash2 size={18} />
+              </div>
+
+              <div className="settings-option-text">
+
+                <strong>
+                  Clear Local Data
+                </strong>
+
+                <span>
+                  Remove locally stored preferences.
+                </span>
+
+              </div>
+
+              <button
+                className="settings-small-danger"
+                onClick={clearLocalData}
+              >
+                Clear
+              </button>
+
+            </div>
+
+
+            <div className="settings-management-row">
+
+              <div className="settings-option-icon gold">
+                <RotateCcw size={18} />
+              </div>
+
+              <div className="settings-option-text">
+
+                <strong>
+                  Reset App Preferences
+                </strong>
+
+                <span>
+                  Reset settings to default values.
+                </span>
+
+              </div>
+
+              <button
+                className="settings-small-button"
+                onClick={resetPreferences}
+              >
+                Reset
+              </button>
+
+            </div>
+
+
+            <div className="settings-management-row">
+
+              <div className="settings-option-icon green">
+                <Download size={18} />
+              </div>
+
+              <div className="settings-option-text">
+
+                <strong>
+                  Export Transaction History
+                </strong>
+
+                <span>
+                  Available from the Transactions page.
+                </span>
+
+              </div>
+
+              <span className="settings-coming-soon">
+                Coming Soon
+              </span>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      {/* =====================================
+          7. ABOUT ASTRA
+      ===================================== */}
+
+      <div className="settings-card settings-about">
+
+        <div className="settings-section-title">
+          <h2>7. About Astra</h2>
+        </div>
+
+
+        <div className="settings-about-content">
+
+          <div className="settings-about-brand">
+
+            <div className="settings-about-logo">
+              <Zap size={28} />
+            </div>
+
+            <div>
+
+              <h3>Astra</h3>
+
+              <strong>
+                Decentralized Savings Platform
+              </strong>
+
+              <p>
+                A secure and transparent way to
+                save, achieve goals and earn yield
+                on-chain.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <div className="settings-about-details">
+
+            <div>
+              <span>Version</span>
+              <strong>1.0.0</strong>
+            </div>
+
+            <div>
+              <span>Environment</span>
+              <strong>Sepolia Testnet</strong>
+            </div>
+
+            <div>
+              <span>Smart Contracts</span>
+              <strong className="settings-verified">
+                Verified ✓
+              </strong>
+            </div>
+
+            <div>
+              <span>Platform</span>
+              <strong>Web Application</strong>
+            </div>
+
+            <div>
+              <span>Built With</span>
+              <strong>
+                React • Ethers.js • Solidity
+              </strong>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+  );
+}
+
 export function App() {
   const handleConnectWallet = async () => {
     try {
@@ -1586,13 +3179,31 @@ export function App() {
     ["Yield Pool", Coins],
     ["Analytics", BarChart3],
     ["Settings", Settings],
-    ["Help & Support", CircleHelp],
+    
   ], []);
 
   const notify = (message) => {
     setToast(message);
     window.clearTimeout(window.__astraToast);
     window.__astraToast = window.setTimeout(() => setToast(""), 2400);
+  };
+
+  const disconnectWallet = () => {
+    setWalletConnected(false);
+    setWalletAddress("");
+    setUsdcBalance("0.00");
+
+    setVaultData({
+      principal: "0.00",
+      yield: "0.00",
+      total: "0.00",
+    });
+
+    setGoalData([]);
+    setRecentTransactions([]);
+    setYieldPool("0.00");
+
+    notify("Wallet disconnected");
   };
 
   const refresh = async () => {
@@ -1809,6 +3420,20 @@ export function App() {
             onViewTransactions={() => setActive("Transactions")}
           />
 
+        ) : active === "Analytics" ? (
+
+          <AnalyticsPage
+            transactions={recentTransactions}
+            goals={goalData}
+            vaultData={vaultData}
+          />
+
+        ) : active === "Settings" ? (
+
+          <SettingsPage
+            walletAddress={walletAddress}
+            disconnectWallet={disconnectWallet}
+          />
 
         ) : (
           <>
