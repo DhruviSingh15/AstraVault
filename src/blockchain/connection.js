@@ -261,19 +261,60 @@ export async function getRecentTransactions(address) {
 
   const currentBlock = await provider.getBlockNumber();
 
-  // Search recent Sepolia history
-  const fromBlock = Math.max(0, currentBlock - 10000);
+  // Sepolia RPC providers limit eth_getLogs requests
+  // to a maximum range of 10,000 blocks.
+  //
+  // Astra transactions are recent, so scan the last
+  // 100,000 blocks in safe 10,000-block chunks.
+  const SEARCH_BLOCKS = 100000;
+
+  const fromBlock = Math.max(
+    0,
+    currentBlock - SEARCH_BLOCKS
+  );
+
+  const BLOCK_CHUNK = 10000;
+
+  const getLogsInChunks = async (
+    contract,
+    filter
+  ) => {
+    const logs = [];
+
+    for (
+      let start = fromBlock;
+      start <= currentBlock;
+      start += BLOCK_CHUNK
+    ) {
+      const end = Math.min(
+        start + BLOCK_CHUNK - 1,
+        currentBlock
+      );
+
+      console.log(
+        `Scanning blocks ${start} → ${end}`
+      );
+
+      const chunkLogs = await contract.queryFilter(
+        filter,
+        start,
+        end
+      );
+
+      logs.push(...chunkLogs);
+    }
+
+    return logs;
+  };
 
   const transactions = [];
-
   // ------------------------------------------------
   // ASTRA VAULT EVENTS
   // ------------------------------------------------
 
-  const depositedEvents = await vault.queryFilter(
-    vault.filters.Deposited(address),
-    fromBlock,
-    currentBlock
+  const depositedEvents = await getLogsInChunks(
+    vault,
+    vault.filters.Deposited(address)
   );
 
   for (const event of depositedEvents) {
@@ -303,10 +344,9 @@ export async function getRecentTransactions(address) {
     });
   }
 
-  const withdrawnEvents = await vault.queryFilter(
-    vault.filters.Withdrawn(address),
-    fromBlock,
-    currentBlock
+  const withdrawnEvents = await getLogsInChunks(
+    vault,
+    vault.filters.Withdrawn(address)
   );
 
   for (const event of withdrawnEvents) {
@@ -348,10 +388,9 @@ export async function getRecentTransactions(address) {
   // GOAL VAULT EVENTS
   // ------------------------------------------------
 
-  const goalCreatedEvents = await goalVault.queryFilter(
-    goalVault.filters.GoalCreated(address),
-    fromBlock,
-    currentBlock
+  const goalCreatedEvents = await getLogsInChunks(
+    goalVault,
+    goalVault.filters.GoalCreated(address)
   );
 
   for (const event of goalCreatedEvents) {
@@ -379,10 +418,9 @@ export async function getRecentTransactions(address) {
     });
   }
 
-  const goalFundedEvents = await goalVault.queryFilter(
-    goalVault.filters.GoalFunded(address),
-    fromBlock,
-    currentBlock
+  const goalFundedEvents = await getLogsInChunks(
+    goalVault,
+    goalVault.filters.GoalFunded(address)
   );
 
   for (const event of goalFundedEvents) {
@@ -412,10 +450,9 @@ export async function getRecentTransactions(address) {
     });
   }
 
-  const goalWithdrawnEvents = await goalVault.queryFilter(
-    goalVault.filters.GoalWithdrawn(address),
-    fromBlock,
-    currentBlock
+  const goalWithdrawnEvents = await getLogsInChunks(
+    goalVault,
+    goalVault.filters.GoalWithdrawn(address)
   );
 
   for (const event of goalWithdrawnEvents) {
@@ -457,10 +494,9 @@ export async function getRecentTransactions(address) {
   // YIELD POOL EVENTS
   // ------------------------------------------------
 
-  const yieldFundedEvents = await goalVault.queryFilter(
-    goalVault.filters.YieldFunded(),
-    fromBlock,
-    currentBlock
+  const yieldFundedEvents = await getLogsInChunks(
+    goalVault,
+    goalVault.filters.YieldFunded()
   );
 
   for (const event of yieldFundedEvents) {

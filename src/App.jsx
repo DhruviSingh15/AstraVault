@@ -16,6 +16,7 @@ import {
 import {
   Activity,
   ArrowDownToLine,
+  ArrowRight,
   ArrowUpRight,
   BarChart3,
   Check,
@@ -38,6 +39,7 @@ import {
   Target,
   TrendingUp,
   Wallet,
+  WalletCards,
   X,
   Zap,
   Percent,
@@ -955,6 +957,557 @@ function MyGoalsPage({
   );
 }
 
+function SavingsPage({
+  vaultData,
+  usdcBalance,
+  transactions,
+  onDeposit,
+  onWithdraw,
+  onViewTransactions,
+}) {
+  const totalSavings = Number(vaultData?.total || 0);
+  const principal = Number(vaultData?.principal || 0);
+  const yieldEarned = Number(vaultData?.yield || 0);
+
+  /*
+   * Main savings balance = vault balance.
+   * Available wallet balance = wallet tUSDC.
+   */
+  const availableBalance = Number(usdcBalance || 0);
+
+  const savingsTransactions = transactions
+    .filter((tx) =>
+      [
+        "Deposit to Savings",
+        "Withdraw Savings",
+        "Deposit",
+        "Withdraw",
+      ].some((name) =>
+        tx.title?.includes(name)
+      )
+    )
+    .slice(0, 4);
+
+  const totalActivity = transactions.length;
+
+  return (
+    <section className="savings-page">
+
+      {/* ======================================
+          HEADER
+      ====================================== */}
+
+      <div className="savings-header">
+
+        <div>
+          <h1>Savings</h1>
+
+          <p>
+            Manage your savings and track your balances.
+          </p>
+        </div>
+
+        <div className="savings-header-balance">
+
+          <div className="savings-network">
+            <span className="network-dot" />
+            Sepolia
+          </div>
+
+          <button
+            className="savings-refresh"
+            onClick={onViewTransactions}
+          >
+            View Transactions
+            <ArrowRight size={16} />
+          </button>
+
+        </div>
+
+      </div>
+
+
+      {/* ======================================
+          SUMMARY CARDS
+      ====================================== */}
+
+      <div className="savings-summary-grid">
+
+        {/* TOTAL SAVINGS */}
+        <div className="savings-summary-card purple">
+
+          <div className="savings-summary-icon">
+            <Wallet size={24} />
+          </div>
+
+          <div>
+            <span>Total Savings</span>
+
+            <strong>
+              {totalSavings.toFixed(2)} tUSDC
+            </strong>
+
+            <small>
+              ≈ ${totalSavings.toFixed(2)} USD
+            </small>
+          </div>
+
+        </div>
+
+
+        {/* AVAILABLE */}
+        <div className="savings-summary-card blue">
+
+          <div className="savings-summary-icon">
+            <WalletCards size={24} />
+          </div>
+
+          <div>
+            <span>Available Balance</span>
+
+            <strong>
+              {availableBalance.toFixed(2)} tUSDC
+            </strong>
+
+            <small>
+              Wallet balance
+            </small>
+          </div>
+
+        </div>
+
+
+        {/* PRINCIPAL */}
+        <div className="savings-summary-card green">
+
+          <div className="savings-summary-icon">
+            <LockKeyhole size={24} />
+          </div>
+
+          <div>
+            <span>Total Principal</span>
+
+            <strong>
+              {principal.toFixed(2)} tUSDC
+            </strong>
+
+            <small>
+              Deposited savings
+            </small>
+          </div>
+
+        </div>
+
+
+        {/* YIELD */}
+        <div className="savings-summary-card gold">
+
+          <div className="savings-summary-icon">
+            <TrendingUp size={24} />
+          </div>
+
+          <div>
+            <span>Total Earned (Yield)</span>
+
+            <strong>
+              {yieldEarned.toFixed(4)} tUSDC
+            </strong>
+
+            <small>
+              Earned from savings
+            </small>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      {/* ======================================
+          MAIN CONTENT
+      ====================================== */}
+
+      <div className="savings-main-grid">
+
+
+        {/* ==================================
+            SAVINGS OVERVIEW
+        ================================== */}
+
+        <div className="savings-overview-card">
+
+          <div className="savings-card-header">
+
+            <div>
+              <h2>Savings Overview</h2>
+
+              <p>
+                Your current savings position
+              </p>
+            </div>
+
+            <span className="savings-period">
+              Current
+            </span>
+
+          </div>
+
+
+          <div className="savings-big-number">
+
+            <span>Total Savings</span>
+
+            <strong>
+              {totalSavings.toFixed(2)}
+              <small> tUSDC</small>
+            </strong>
+
+          </div>
+
+
+          {/* VISUAL BAR */}
+
+          <div className="savings-visual">
+
+            <div className="savings-visual-line">
+              <span />
+            </div>
+
+            <div className="savings-visual-labels">
+
+              <span>
+                Principal
+                <strong>
+                  {principal.toFixed(2)} tUSDC
+                </strong>
+              </span>
+
+              <span>
+                Yield
+                <strong>
+                  {yieldEarned.toFixed(4)} tUSDC
+                </strong>
+              </span>
+
+            </div>
+
+          </div>
+
+
+          {/* BOTTOM METRICS */}
+
+          <div className="savings-overview-metrics">
+
+            <div>
+              <span>Total Deposited</span>
+
+              <strong className="green-text">
+                {principal.toFixed(2)} tUSDC
+              </strong>
+            </div>
+
+            <div>
+              <span>Yield Earned</span>
+
+              <strong className="purple-text">
+                {yieldEarned.toFixed(4)} tUSDC
+              </strong>
+            </div>
+
+            <div>
+              <span>Net Savings</span>
+
+              <strong className="blue-text">
+                {totalSavings.toFixed(2)} tUSDC
+              </strong>
+            </div>
+
+          </div>
+
+        </div>
+
+
+        {/* ==================================
+            RIGHT COLUMN
+        ================================== */}
+
+        <div className="savings-right-column">
+
+
+          {/* QUICK ACTIONS */}
+
+          <div className="savings-panel">
+
+            <div className="savings-panel-title">
+              <h2>Quick Actions</h2>
+            </div>
+
+
+            <button
+              className="savings-action deposit"
+              onClick={onDeposit}
+            >
+
+              <div className="savings-action-icon">
+                <ArrowDownToLine size={21} />
+              </div>
+
+              <div>
+                <strong>Deposit</strong>
+
+                <span>
+                  Add funds to your savings
+                </span>
+              </div>
+
+              <ChevronRight size={18} />
+
+            </button>
+
+
+            <button
+              className="savings-action withdraw"
+              onClick={onWithdraw}
+            >
+
+              <div className="savings-action-icon">
+                <ArrowUpRight size={21} />
+              </div>
+
+              <div>
+                <strong>Withdraw</strong>
+
+                <span>
+                  Withdraw from your savings
+                </span>
+              </div>
+
+              <ChevronRight size={18} />
+
+            </button>
+
+          </div>
+
+
+          {/* BREAKDOWN */}
+
+          <div className="savings-panel savings-breakdown">
+
+            <div className="savings-panel-title">
+              <h2>Savings Breakdown</h2>
+            </div>
+
+
+            <div className="breakdown-content">
+
+              <div className="breakdown-ring">
+
+                <div>
+                  <strong>
+                    {totalSavings.toFixed(2)}
+                  </strong>
+
+                  <span>tUSDC</span>
+
+                  <small>Total</small>
+                </div>
+
+              </div>
+
+
+              <div className="breakdown-legend">
+
+                <div>
+
+                  <span className="legend-dot purple-dot" />
+
+                  <div>
+                    <strong>
+                      Principal
+                    </strong>
+
+                    <small>
+                      {principal.toFixed(2)} tUSDC
+                    </small>
+                  </div>
+
+                </div>
+
+
+                <div>
+
+                  <span className="legend-dot green-dot" />
+
+                  <div>
+                    <strong>
+                      Yield
+                    </strong>
+
+                    <small>
+                      {yieldEarned.toFixed(4)} tUSDC
+                    </small>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      {/* ======================================
+          RECENT SAVINGS ACTIVITY
+      ====================================== */}
+
+      <div className="savings-activity-card">
+
+        <div className="savings-card-header">
+
+          <div>
+            <h2>Recent Savings Activity</h2>
+
+            <p>
+              Latest savings-related transactions.
+            </p>
+          </div>
+
+          <button
+            className="savings-view-all"
+            onClick={onViewTransactions}
+          >
+            View All
+            <ArrowRight size={15} />
+          </button>
+
+        </div>
+
+
+        <div className="savings-activity-table">
+
+          <div className="savings-activity-header">
+
+            <span>Type</span>
+            <span>Description</span>
+            <span>Amount</span>
+            <span>Date</span>
+            <span>Status</span>
+
+          </div>
+
+
+          {savingsTransactions.length === 0 ? (
+
+            <div className="savings-empty">
+              <Wallet size={30} />
+
+              <h3>
+                No savings activity yet
+              </h3>
+
+              <p>
+                Your deposits and withdrawals
+                will appear here.
+              </p>
+            </div>
+
+          ) : (
+
+            savingsTransactions.map((tx, index) => {
+
+              const isWithdraw =
+                tx.title?.toLowerCase()
+                  .includes("withdraw");
+
+              return (
+                <div
+                  className="savings-activity-row"
+                  key={
+                    tx.transactionHash
+                      ? `${tx.transactionHash}-${index}`
+                      : index
+                  }
+                >
+
+                  <div className="activity-type">
+
+                    <div
+                      className={
+                        isWithdraw
+                          ? "activity-icon withdraw"
+                          : "activity-icon deposit"
+                      }
+                    >
+                      {isWithdraw ? (
+                        <ArrowUpRight size={17} />
+                      ) : (
+                        <ArrowDownToLine size={17} />
+                      )}
+                    </div>
+
+                    <strong>
+                      {isWithdraw
+                        ? "Withdraw"
+                        : "Deposit"}
+                    </strong>
+
+                  </div>
+
+
+                  <div className="activity-description">
+
+                    <strong>
+                      {tx.title}
+                    </strong>
+
+                    <span>
+                      Savings transaction
+                    </span>
+
+                  </div>
+
+
+                  <div
+                    className={
+                      isWithdraw
+                        ? "activity-amount negative"
+                        : "activity-amount positive"
+                    }
+                  >
+                    {tx.detail}
+                  </div>
+
+
+                  <div className="activity-date">
+                    {tx.meta || "—"}
+                  </div>
+
+
+                  <div>
+                    <span className="activity-status">
+                      Success
+                    </span>
+                  </div>
+
+                </div>
+              );
+            })
+
+          )}
+
+        </div>
+
+      </div>
+
+    </section>
+  );
+}
+
 export function App() {
   const handleConnectWallet = async () => {
     try {
@@ -1244,6 +1797,18 @@ export function App() {
               setShowAction("withdraw");
             }}
           />
+
+        ) : active === "Savings" ? (
+
+          <SavingsPage
+            vaultData={vaultData}
+            usdcBalance={usdcBalance}
+            transactions={recentTransactions}
+            onDeposit={() => setShowAction("deposit")}
+            onWithdraw={() => setShowAction("withdraw")}
+            onViewTransactions={() => setActive("Transactions")}
+          />
+
 
         ) : (
           <>
